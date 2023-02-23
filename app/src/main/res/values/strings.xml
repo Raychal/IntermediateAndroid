@@ -2,5 +2,6 @@
     <string name="app_name">Intermediate Android</string>
 
     <string name="btn_text_play">Play</string>
-    <string name="text_sound_pool">Test Soundpool</string>
+    <string name="text_mediaplayer">Test Mediaplayer</string>
+    <string name="btn_text_stop">Stop</string>
 </resources>
