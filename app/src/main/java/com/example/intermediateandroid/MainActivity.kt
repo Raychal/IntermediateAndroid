@@ -1,8 +1,10 @@
 package com.example.intermediateandroid
 
+import android.content.Intent
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.Settings
 import android.view.WindowInsets
 import android.view.WindowManager
 import com.example.intermediateandroid.databinding.ActivityMainBinding
@@ -17,6 +19,13 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupView()
+        setupAction()
+    }
+
+    private fun setupAction() {
+        binding.settingImageView.setOnClickListener {
+            startActivity(Intent(Settings.ACTION_LOCALE_SETTINGS))
+        }
     }
 
     private fun setupView() {
