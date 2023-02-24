@@ -1,11 +1,12 @@
 <resources>
     <string name="app_name">Intermediate Android</string>
-    <string name="title_activity_maps">MapsActivity</string>
-    <string name="normal_type">Normal</string>
-    <string name="satellite_type">Satellite</string>
-    <string name="terrain_type">Terrain</string>
-    <string name="hybrid_type">Hybrid</string>
-    <string name="start_point">Start Point</string>
-    <string name="start_running">Start Running</string>
-    <string name="stop_running">Stop Running</string>
+    <string name="home">Home</string>
+    <string name="bookmark">Bookmark</string>
+    <string name="title">Title</string>
+    <string name="published_date">Published Date</string>
+    <string name="save_bookmark">Save Bookmark?</string>
+    <string name="no_data">Empty data</string>
+    <string name="something_wrong">Oops.. something went wrong.</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
