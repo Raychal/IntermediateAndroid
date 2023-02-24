@@ -13,12 +13,17 @@ import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PolylineOptions
 import java.util.ArrayList
 import android.Manifest
+import android.annotation.SuppressLint
+import android.annotation.TargetApi
+import android.app.PendingIntent
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.location.Geocoder
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -50,6 +55,22 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var locationCallback: LocationCallback
     private var isTracking = false
     private var allLatLng = ArrayList<LatLng>()
+
+    private lateinit var geofencingClient: GeofencingClient
+
+    private val centerLat = 37.4274745
+    private val centerLng = -122.169719
+    private val geofenceRadius = 400.0
+
+    private val geofencePendingIntent: PendingIntent by lazy {
+        val intent = Intent(this, GeofenceBroadcastReceiver::class.java)
+        intent.action = GeofenceBroadcastReceiver.ACTION_GEOFENCE_EVENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_MUTABLE)
+        } else {
+            PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -133,7 +154,34 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 stopLocationUpdates()
             }
         }
+
+        val stanford = LatLng(centerLat, centerLng)
+        mMap.addMarker(MarkerOptions().position(stanford).title("Stanford University"))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(stanford, 15f))
+
+        mMap.addCircle(
+            CircleOptions()
+                .center(stanford)
+                .radius(geofenceRadius)
+                .fillColor(0x22FF0000)
+                .strokeColor(Color.RED)
+                .strokeWidth(3f)
+        )
+
+        getMyLocation()
+        addGeofence()
     }
+
+    private val requestBackgroundLocationPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                getMyLocation()
+            }
+        }
+
+    private val runningQOrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_options, menu)
@@ -426,6 +474,71 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     ).show()
             }
         }
+
+    @TargetApi(Build.VERSION_CODES.Q)
+    private val requestLocationPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                if (runningQOrLater) {
+                    requestBackgroundLocationPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                } else {
+                    getMyLocation()
+                }
+            }
+        }
+
+    @TargetApi(Build.VERSION_CODES.Q)
+    private fun checkForegroundAndBackgroundLocationPermission(): Boolean {
+        val foregroundLocationApproved = checkPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        val backgroundPermissionApproved =
+            if (runningQOrLater) {
+                checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            } else {
+                true
+            }
+        return foregroundLocationApproved && backgroundPermissionApproved
+    }
+
+    @SuppressLint("MissingPermission", "VisibleForTests")
+    private fun addGeofence() {
+        geofencingClient = LocationServices.getGeofencingClient(this)
+
+        val geofence = Geofence.Builder()
+            .setRequestId("kampus")
+            .setCircularRegion(
+                centerLat,
+                centerLng,
+                geofenceRadius.toFloat()
+            )
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_DWELL or Geofence.GEOFENCE_TRANSITION_ENTER)
+            .setLoiteringDelay(5000)
+            .build()
+
+        val geofencingRequest = GeofencingRequest.Builder()
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .addGeofence(geofence)
+            .build()
+
+        geofencingClient.removeGeofences(geofencePendingIntent).run {
+            addOnCompleteListener {
+                geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent).run {
+                    addOnSuccessListener {
+                        showToast("Geofencing added")
+                    }
+                    addOnFailureListener {
+                        showToast("Geofencing not added : ${it.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showToast(text: String) {
+        Toast.makeText(this@MapsActivity, text, Toast.LENGTH_SHORT).show()
+    }
 
     companion object {
         private const val TAG = "MapsActivity"
