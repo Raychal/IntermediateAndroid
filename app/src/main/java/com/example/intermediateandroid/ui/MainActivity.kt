@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.intermediateandroid.adapter.LoadingStateAdapter
 import com.example.intermediateandroid.adapter.QuoteListAdapter
 import com.example.intermediateandroid.databinding.ActivityMainBinding
 
@@ -26,7 +27,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun getData() {
         val adapter = QuoteListAdapter()
-        binding.rvQuote.adapter = adapter
+        binding.rvQuote.adapter = adapter.withLoadStateFooter(
+            footer = LoadingStateAdapter {
+                adapter.retry()
+            }
+        )
         mainViewModel.quote.observe(this) {
             adapter.submitData(lifecycle, it)
         }
